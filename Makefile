@@ -35,7 +35,7 @@ LOWER_MCU := $(subst A,a,$(subst B,b,$(subst C,c,$(subst D,d,$(subst E,e,$(subst
 MCU_LD = $(LOWER_MCU).ld
 
 # The name of your project (used to name the compiled .hex file)
-TARGET = main
+TARGET = frequencyshifter
 
 BUILDDIR=build
 
