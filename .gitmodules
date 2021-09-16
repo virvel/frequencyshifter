@@ -1,0 +1,3 @@
+[submodule "libraries/OpenAudio_ArduinoLibrary"]
+	path = libraries/OpenAudio_ArduinoLibrary
+	url = https://github.com/chipaudette/OpenAudio_ArduinoLibrary
