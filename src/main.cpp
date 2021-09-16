@@ -1,17 +1,16 @@
-#include <SoftwareSerial.h>
 #include "WProgram.h"
 #include <Arduino.h>
-#include <Audio.h>
-#include "effect_frequencyshifter.h"
+#include <OpenAudio_ArduinoLibrary.h>
+#include "effect_frequencyshifter_f32.h"
 #include "BALibrary.h"
 
 using namespace BALibrary;
 
 BAAudioControlWM8731 codecControl;
 
-AudioFrequencyShifter fS;   
-AudioInputI2S           adc;
-AudioOutputI2S           dac;       
+AudioFrequencyShifter_F32 fS;   
+AudioInputI2S_F32           adc;
+AudioOutputI2S_F32           dac;
 AudioConnection          patchChord1(adc, 0, fS, 0);
 AudioConnection          patchCord1(fS, 0, dac, 0);
 AudioConnection          patchCord2(fS, 0, dac, 1);

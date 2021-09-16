@@ -39,12 +39,6 @@ TARGET = frequencyshifter
 
 BUILDDIR=build
 
-# Those that specify a NO_ARDUINO environment variable will
-# be able to use this Makefile with no Arduino dependency.
-# Please note that if ARDUINOPATH was set, it will override
-# the NO_ARDUINO behaviour.
-
-
 OPTIONS = -DF_CPU=180000000 -DUSB_MIDI_SERIAL -DLAYOUT_US_ENGLISH -DUSING_MAKEFILE
 
 OPTIONS += -D__$(MCU)__ -DARDUINO=10805 -DTEENSYDUINO=144
@@ -73,7 +67,7 @@ LD_SCRIPT = $(COREPATH)/$(MCU_LD)
 #************************************************************************
 
 # CPPFLAGS = compiler options for C and C++
-CPPFLAGS = -Wall -g -Os -mcpu=$(CPUARCH) -mthumb -MMD $(OPTIONS) -I. -I$(LIBRARYPATH)/BALibrary-master/src -I$(COREPATH) -I$(LIBRARYPATH)/Wire -I$(LIBRARYPATH)/Audio -I$(LIBRARYPATH)/Audio/utility -I$(LIBRARYPATH)/Bounce2 -I$(LIBRARYPATH)/Encoder -I$(LIBRARYPATH)/SPI -I$(LIBRARYPATH)/SD -I$(LIBRARYPATH)/SD/utility -I$(LIBRARYPATH)/SerialFlash -I$(LIBRARYPATH)/SoftwareSerial -I$(LIBRARYPATH)/MIDI/src
+CPPFLAGS = -Wall -g -Os -mcpu=$(CPUARCH) -mthumb -MMD $(OPTIONS) -I. -I$(LIBRARYPATH)/BALibrary-master/src -I$(COREPATH) -I$(LIBRARYPATH)/Wire -I$(LIBRARYPATH)/Audio -I$(LIBRARYPATH)/Audio/utility -I$(LIBRARYPATH)/Bounce2 -I$(LIBRARYPATH)/Encoder -I$(LIBRARYPATH)/SPI -I$(LIBRARYPATH)/SD -I$(LIBRARYPATH)/SD/utility -I$(LIBRARYPATH)/SerialFlash -I$(LIBRARYPATH)/SoftwareSerial -I$(LIBRARYPATH)/OpenAudio_ArduinoLibrary -I$(LIBRARYPATH)/MIDI/src
 
 # compiler options for C++ only
 CXXFLAGS = -std=gnu++14 -felide-constructors -fno-exceptions -fno-rtti
@@ -100,15 +94,15 @@ C_FILES := $(wildcard src/*.c)
 CPP_FILES := $(wildcard src/*.cpp)
 TEENSY_C_FILES := $(wildcard $(COREPATH)/*.c)
 TEENSY_CPP_FILES := $(wildcard $(COREPATH)/*.cpp)
-ARDUINO_C_FILES := $(wildcard $(LIBRARYPATH)/*/*.c)
-ARDUINO_CPP_FILES := $(wildcard $(LIBRARYPATH)/*/*.cpp)
-ARDUINO_SD_CPP_FILES := $(wildcard $(LIBRARYPATH)/SD/*/*.cpp)
-ARDUINO_MIDI_CPP_FILES := $(wildcard $(LIBRARYPATH)/MIDI/src/*.cpp)
-ARDUINO_S_FILES := $(wildcard $(LIBRARYPATH)/*/*.S)
+LIBRARY_C_FILES := $(wildcard $(LIBRARYPATH)/*/*.c)
+LIBRARY_CPP_FILES := $(wildcard $(LIBRARYPATH)/*/*.cpp)
+LIBRARY_SD_CPP_FILES := $(wildcard $(LIBRARYPATH)/SD/*/*.cpp)
+LIBRARY_MIDI_CPP_FILES := $(wildcard $(LIBRARYPATH)/MIDI/src/*.cpp)
+LIBRARY_S_FILES := $(wildcard $(LIBRARYPATH)/*/*.S)
 BA_C_FILES := $(wildcard $(LIBRARYPATH)/BALibrary-master/src/*/*.c)
 BA_CPP_FILES := $(wildcard $(LIBRARYPATH)/BALibrary-master/src/*/*.cpp)
 
-OBJ_FILES := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o) $(BA_C_FILES:.c=.o) $(BA_CPP_FILES:.cpp=.o) $(ARDUINO_C_FILES:.c=.o) $(ARDUINO_CPP_FILES:.cpp=.o) $(ARDUINO_SD_CPP_FILES:.cpp=.o) $(ARDUINO_MIDI_CPP_FILES:.cpp=.o) $(ARDUINO_S_FILES:.S=.o) $(TEENSY_C_FILES:.c=.o) $(TEENSY_CPP_FILES:.cpp=.o)
+OBJ_FILES := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o) $(BA_C_FILES:.c=.o) $(BA_CPP_FILES:.cpp=.o) $(LIBRARY_C_FILES:.c=.o) $(LIBRARY_CPP_FILES:.cpp=.o) $(LIBRARY_SD_CPP_FILES:.cpp=.o) $(LIBRARY_MIDI_CPP_FILES:.cpp=.o) $(LIBRARY_S_FILES:.S=.o) $(TEENSY_C_FILES:.c=.o) $(TEENSY_CPP_FILES:.cpp=.o)
 OBJS := $(foreach obj,$(OBJ_FILES), $(BUILDDIR)/$(obj))
 
 all: $(TARGET).hex
