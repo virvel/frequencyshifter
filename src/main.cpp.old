@@ -1,0 +1,131 @@
+
+#include "WProgram.h"
+#include <Arduino.h>
+#include <Audio.h>
+#include "BALibrary.h"
+
+using namespace BALibrary;
+
+const float baseFreq = 110.0;
+const int voices = 4;
+
+BAAudioControlWM8731 codecControl;
+AudioSynthWaveformSine sines[voices];
+AudioSynthWaveformModulated waveformMods[voices];
+AudioAmplifier amps[voices+1];
+AudioAmplifier sineAmps[voices];
+AudioMixer4 mixer1;
+AudioMixer4 mixer3;
+AudioOutputI2S i2s1;
+
+AudioConnection          patchCord3(sines[3], 0, sineAmps[3], 0);
+AudioConnection          patchCord4(sines[2], 0, sineAmps[2], 0);
+AudioConnection          patchCord6(sines[0], 0, sineAmps[0], 0);
+AudioConnection          patchCord7(sines[1], 0, sineAmps[1], 0);
+AudioConnection          patchCord33(sineAmps[3], 0, waveformMods[3], 0);
+AudioConnection          patchCord34(sineAmps[2], 0, waveformMods[2], 0);
+AudioConnection          patchCord36(sineAmps[0], 0, waveformMods[0], 0);
+AudioConnection          patchCord37(sineAmps[1], 0, waveformMods[1], 0);
+AudioConnection          patchCord11(waveformMods[3], amps[3]);
+AudioConnection          patchCord13(waveformMods[0], amps[0]);
+AudioConnection          patchCord15(waveformMods[1], amps[1]);
+AudioConnection          patchCord16(waveformMods[2], amps[2]);
+AudioConnection          patchCord17(amps[3], 0, mixer1, 2);
+AudioConnection          patchCord18(amps[1], 0, mixer1, 0);
+AudioConnection          patchCord22(amps[2], 0, mixer1, 1);
+AudioConnection          patchCord23(amps[0], 0, mixer1, 3);
+AudioConnection          patchCord25(mixer1, 0, amps[voices],0);
+AudioConnection          patchCord38(amps[voices], 0, i2s1, 0);
+AudioConnection          patchCord39(amps[voices], 0, i2s1, 1);
+
+BAPhysicalControls controls(BA_EXPAND_NUM_SW, BA_EXPAND_NUM_POT, 0, BA_EXPAND_NUM_LED);
+
+extern "C" int main() {
+
+
+  TGA_PRO_REVB();
+  
+  pinMode(BA_EXPAND_LED1_PIN, OUTPUT);
+  digitalWrite(BA_EXPAND_LED1_PIN, HIGH);
+  delay(400);
+  digitalWrite(BA_EXPAND_LED1_PIN, LOW);
+
+  //float intervals[4] = {1.0, 2.0, 1.5, 3.5}; 
+
+  for (auto i=0;i< voices;++i) {
+    sines[i].frequency(2.0*baseFreq * powf(2.0, static_cast<float>(i)/12.0));
+    sines[i].amplitude(1.0);
+
+    waveformMods[i].begin(0.125, baseFreq * powf(2.0, static_cast<float>(i)/12.0), WAVEFORM_TRIANGLE);
+    waveformMods[i].frequencyModulation(10);
+  
+    amps[i].gain(0.5);
+    sineAmps[i].gain(0.5);
+  }
+
+  amps[voices].gain(1.0);
+
+  mixer1.gain(0, 1.0);
+  mixer1.gain(1, 1.0);
+  mixer1.gain(2, 1.0);
+  mixer1.gain(3, 1.0);
+
+  mixer3.gain(0, 0.5);
+  mixer3.gain(1, 0.5);
+  mixer3.gain(2, 0.5);
+  mixer3.gain(3, 0.5);
+ 
+  delay(5); // wait a few ms to make sure the GTA Pro is fully powered up
+  AudioMemory(12);
+  codecControl.disable();
+  delay(100);
+  codecControl.enable();
+  delay(100);
+  codecControl.setHeadphoneVolume(0.8f);
+
+  /*
+  controls.addPot(BA_EXPAND_POT1_PIN, 0, 1020, true);
+  controls.addPot(BA_EXPAND_POT2_PIN, 0, 1020, true);
+  controls.addPot(BA_EXPAND_POT3_PIN, 0, 1020, true);
+  */
+
+
+
+while (1) {
+  if(usbMIDI.read()) {
+    byte type = usbMIDI.getType();
+    byte data1 = usbMIDI.getData1();
+    byte data2 = usbMIDI.getData2();
+
+    switch (type) {
+      case usbMIDI.ControlChange:
+        if(data1 >= 32 && data1 <= 35) {
+          amps[data1-32].gain(static_cast<float>(data2)/128.0);
+        }
+        if(data1 >= 40 && data1 <= 43) {
+          sineAmps[data1-40].gain(static_cast<float>(data2)/128.0);
+        }
+        break;
+
+      default:
+        break;
+    }
+  }
+  
+    /*float value;
+    if (controls.checkPotValue(0, value)) {
+      fShifter.frequency(static_cast<float>(value)*100.0);
+    }
+    
+    if (controls.checkPotValue(1, value)) {
+      for (int i = 0; i<8; ++i) {
+        sineAmps[i].gain(static_cast<float>(value));
+      }
+    }
+    if (controls.checkPotValue(2, value)) {
+      amps[8].gain(static_cast<float>(value));
+    }*/
+}
+
+
+}
