@@ -18,12 +18,10 @@ class AudioFrequencyShifter_F32 : public AudioStream_F32
 {
 public:
 	AudioFrequencyShifter_F32() : AudioStream_F32(1, inputQueueArray_f32) {
-		arm_cfft_radix4_init_f32(&fft_inst, 256, 0, 1);
-		arm_cfft_radix4_init_f32(&ifft_inst, 256, 1, 1);
-		i_phase_accumulator = 0.;
+		arm_biquad_cascade_df1_init_f32(&i_ap, n_states, coeffs_i, i_state);
+		arm_biquad_cascade_df1_init_f32(&q_ap, n_states, coeffs_q, q_state);
+se_accumulator = 0.;
 		q_phase_accumulator = 270.0 * (4294967296.0 / 360.0);
-		prevblock = NULL;
-		useHanningWindow();
 	}
 	void frequency(float freq) {
 		if (freq < 0.0) freq = 0.0;
@@ -46,25 +44,34 @@ private:
 	uint32_t phase_increment;
 	int32_t magnitude;
 
-	float buffer[512];
-	float real[256];
-	float imag[256];
-	float cos[128];
-	float sin[128];
-	float window[256];
-
-	audio_block_f32_t *prevblock;
+	audio_block_f32_t *i_block;
 	audio_block_f32_t *inputQueueArray_f32[1];
 
-	arm_cfft_radix4_instance_f32 fft_inst;
-	arm_cfft_radix4_instance_f32 ifft_inst;
+	arm_biquad_casd_df1_inst_f32 i_ap;
+	arm_biquad_casd_df1_inst_f32 q_ap;
 
-    void useHanningWindow(void) {
-        for (int i=0; i < 256; i++) {
-           // 2*PI/255 = 0.0246399424
-           window[i] = 0.5*(1.0 - cosf(0.0246399424*(float)i));
-        }
-    }
+	static const int n_states = 4;
+
+	float i_state[n_states * 4];
+	float q_state[n_states * 4];
+
+	const float c_coeffs_i[4] = {0.47944111608296202665,0.87624358989504858020,0.97660296916871658368,0.99749940412203375040};
+	const float c_coeffs_q[4] = {0.16177741706363166219,0.73306690130335572242,0.94536301966806279840,0.99060051416704042460};
+
+	float coeffs_i[n_states * 5] = {c_coeffs_i[0], 0.f, -1.f, 0.f, c_coeffs_i[0],
+											  c_coeffs_i[1], 0.f, -1.f, 0.f, c_coeffs_i[1],
+											  c_coeffs_i[2], 0.f, -1.f, 0.f, c_coeffs_i[2],
+											  c_coeffs_i[3], 0.f, -1.f, 0.f, c_coeffs_i[3]};
+
+	float coeffs_q[n_states * 5] = {c_coeffs_q[0], 0.f, -1.f, 0.f, c_coeffs_q[0],
+								 			  c_coeffs_q[1], 0.f, -1.f, 0.f, c_coeffs_q[1],
+								 			  c_coeffs_q[2], 0.f, -1.f, 0.f, c_coeffs_q[2],
+											  c_coeffs_q[3], 0.f, -1.f, 0.f, c_coeffs_q[3]};
+								
+	float cos[128];
+	float sin[128];
+	float q[128];
+
 };
 
 #endif

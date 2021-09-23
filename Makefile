@@ -60,6 +60,8 @@ COMPILERPATH =  tools/arm/bin
 
 LD_SCRIPT = $(COREPATH)/$(MCU_LD)
 
+CPUOPTIONS = -mcpu=$(CPUARCH) -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant
+
 
 
 #************************************************************************
@@ -67,19 +69,19 @@ LD_SCRIPT = $(COREPATH)/$(MCU_LD)
 #************************************************************************
 
 # CPPFLAGS = compiler options for C and C++
-CPPFLAGS = -Wall -g -Os -mcpu=$(CPUARCH) -mthumb -MMD $(OPTIONS) -I. -I$(LIBRARYPATH)/BALibrary-master/src -I$(COREPATH) -I$(LIBRARYPATH)/Wire -I$(LIBRARYPATH)/Audio -I$(LIBRARYPATH)/Audio/utility -I$(LIBRARYPATH)/Bounce2 -I$(LIBRARYPATH)/Encoder -I$(LIBRARYPATH)/SPI -I$(LIBRARYPATH)/SD -I$(LIBRARYPATH)/SD/utility -I$(LIBRARYPATH)/SerialFlash -I$(LIBRARYPATH)/SoftwareSerial -I$(LIBRARYPATH)/OpenAudio_ArduinoLibrary -I$(LIBRARYPATH)/MIDI/src
+CPPFLAGS = -Wall -O2 -mcpu=$(CPUARCH) $(CPUOPTIONS) -fsingle-precision-constant -MMD $(OPTIONS) -I. -I$(LIBRARYPATH)/BALibrary-master/src -I$(COREPATH) -I$(LIBRARYPATH)/Wire -I$(LIBRARYPATH)/Audio -I$(LIBRARYPATH)/Audio/utility -I$(LIBRARYPATH)/Bounce2 -I$(LIBRARYPATH)/Encoder -I$(LIBRARYPATH)/SPI -I$(LIBRARYPATH)/SD -I$(LIBRARYPATH)/SD/utility -I$(LIBRARYPATH)/SerialFlash -I$(LIBRARYPATH)/SoftwareSerial -I$(LIBRARYPATH)/OpenAudio_ArduinoLibrary -I$(LIBRARYPATH)/MIDI/src
 
 # compiler options for C++ only
 CXXFLAGS = -std=gnu++14 -felide-constructors -fno-exceptions -fno-rtti
 
 # compiler options for C only
-CFLAGS =
+CFLAGS = 
 
 # linker options
-LDFLAGS = -Os -Wl,--gc-sections,--defsym=__rtc_localtime=0 --specs=nano.specs -mcpu=$(CPUARCH) -mthumb -T$(LD_SCRIPT)
+LDFLAGS = -Os -Wl,--gc-sections,--defsym=__rtc_localtime=0 --specs=nano.specs -mcpu=$(CPUARCH) $(CPUOPTIONS) -T$(LD_SCRIPT)
 
 # additional libraries to link
-LIBS = -lm -larm_cortexM4l_math
+LIBS = -lm -larm_cortexM4lf_math
 
 
 # names for the compiler programs
@@ -129,6 +131,7 @@ ifneq (,$(wildcard $(TOOLSPATH)))
 	$(TOOLSPATH)/teensy_post_compile -file=$(basename $@) -path=$(shell pwd) -tools=$(TOOLSPATH)
 	-$(TOOLSPATH)/teensy_reboot
 endif
+
 
 # compiler generated dependency info
 -include $(OBJS:.o=.d)

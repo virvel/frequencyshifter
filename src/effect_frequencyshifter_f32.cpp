@@ -1,5 +1,7 @@
 /* 
-* Frequency shifter using FFT based Hilbert transform
+* Frequency shifter using Allpass based Hilbert transform
+More info:
+http://yehar.com/blog/?p=368
  */
 
 #include <Arduino.h>
@@ -11,69 +13,14 @@ extern "C" {
 extern const int16_t AudioWaveformSine[257];
 }
 
-static void copy_to_fft_buffer(void *destination, const void *source)  {
-    const float *src = (const float *)source;
-    float *dst = (float *)destination;
-    for (int i=0; i < AUDIO_BLOCK_SAMPLES; ++i) {
-       *dst++ = *src++;
-       *src++;
-       }
-    }
-
-static void apply_window_to_fft_buffer(void *fft_buffer, const void *window) {
-    float *buf = (float *)fft_buffer;      // 0th entry is real (do window) 1th is imag
-    const float *win = (float *)window;
-    for (int i=0; i < 256; i++)  {
-       buf[2*i] *= *win;      // real
-       buf[2*i + 1] *= *win++;  // imag
-       }
-    }
-
- static void copy_to_analytic_buffer(void *real, void *imag, const void *source) {
- 	float *src = (float *) source;
- 	float *re = (float*) real;
- 	float *im = (float*) imag;
- 	for (int i = 0; i< AUDIO_BLOCK_SAMPLES; ++i) {
- 		*re++ = *src++;
- 		*im++ = *src++;
- 	}
- }
 
 void AudioFrequencyShifter_F32::update()
 {
-	audio_block_f32_t *block;
+	i_block = receiveWritable_f32(0);
+	if (!i_block) return;
 
-	block = receiveWritable_f32(0);
-	if (!block) return;
-	if (!prevblock) {
-		prevblock = block;
-		return;
-	}
-	copy_to_fft_buffer(buffer, prevblock->data);
-	copy_to_fft_buffer(buffer+256, block->data);
-
-	//if (window) apply_window_to_fft_buffer(buffer, window);
-	arm_cfft_radix4_f32(&fft_inst, buffer);
-
-	uint32_t L, i;
-
-	L = (fft_inst.fftLen);
-
-	for (i = 0;i < (L*2); i+=2) {
-		if(i == L) {}
-		else if (i <= L-2) {
-			buffer[i] *= 2;
-			buffer[i+1] *= 2;
-		}
-		else {
-			buffer[i] = 0;
-			buffer[i+1] = 0;
-		}
-	}
-
-	arm_cfft_radix4_f32(&ifft_inst, buffer);
-
-	copy_to_analytic_buffer(real, imag, buffer);
+	for (int i = 0; i < AUDIO_BLOCK_SAMPLES; ++i)
+		q[i] = i_block->data[i];
 
 	// Quadrature oscillator for ring modulation
 
@@ -101,10 +48,8 @@ void AudioFrequencyShifter_F32::update()
 			im_val1 *= 0x10000 - scale;
 
 #if defined(__ARM_ARCH_7EM__)
-			cos[j] = multiply_32x32_rshift32(re_val1 + re_val2, magnitude) / 32768.0;
-			sin[j] = multiply_32x32_rshift32(im_val1 + im_val2, magnitude) / 32768.0;
-			//prevblock->data[j] = buffer[2*j]*multiply_32x32_rshift32(re_val1 + re_val2, magnitude) / 32768.0;
-			//prevblock->data[j] -= buffer[2*j+1]*multiply_32x32_rshift32(im_val1 + im_val2, magnitude) / 32768.0;
+			cos[j] = (float) (multiply_32x32_rshift32(re_val1 + re_val2, magnitude)) / 32767.0;
+			sin[j] = (float) (multiply_32x32_rshift32(im_val1 + im_val2, magnitude)) / 32767.0;
 #elif defined(KINETISL)
 			cos[j] *= (((re_val1 + re_val2) >> 16) * magnitude) >> 16;
 			sin[j] *= (((im_val1 + im_val2) >> 16) * magnitude) >> 16;
@@ -120,17 +65,28 @@ void AudioFrequencyShifter_F32::update()
 		q_phase_accumulator += phase_increment * AUDIO_BLOCK_SAMPLES;
 	}
 
+	
+ 	arm_biquad_cascade_df1_f32(&i_ap, i_block->data, i_block->data, 128);
+ 	arm_biquad_cascade_df1_f32(&q_ap, q, q, 128);
+
 	// Ring modulation
 
-	arm_mult_f32(cos, real, real,128);
-	arm_mult_f32(sin, imag, imag, 128);
-	arm_sub_f32(real, imag, prevblock->data, 128);
+	arm_mult_f32(cos, i_block->data, i_block->data, 128);
+	arm_scale_f32(i_block->data, 0.5, i_block->data, 128);
 
+	arm_mult_f32(sin, q, q, 128);
+	arm_scale_f32(q, 0.5, q, 128);
+
+	arm_sub_f32(i_block->data, q, i_block->data, 128);
+	
 	// Transmit and release resources
 
-	transmit(prevblock);
+	transmit(i_block);
+	release(i_block);
+	/*
 	release(prevblock);
 	prevblock = block;
+	*/
 
 }
 
